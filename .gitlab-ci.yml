@@ -1,0 +1,46 @@
+vstages:
+  - build
+  - test
+  - deploy
+
+default:
+  image: node
+
+.standard-rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+build-job:
+  image: node
+  extends:
+    - .standard-rules
+  stage: build
+  script:
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - "dist/"
+
+test-html:
+  extends:
+    - .standard-rules
+  stage: test
+  dependencies: []
+  script:
+    - npm install --save-dev htmlhint
+    - npx htmlhint "dist/**/*.html"
+
+deploy:
+  stage: deploy
+  image: busybox
+  dependencies:
+    - build-job
+  script:
+    - mv dist/ public/
+  artifacts:
+    paths:
+      - "public/"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
